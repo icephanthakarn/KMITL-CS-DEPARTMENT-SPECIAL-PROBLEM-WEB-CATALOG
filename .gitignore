@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+env/
+venv/
+
+# DB and sensitive files
+mydb.sqlite3
+instance/
+
+# Uploads
+static/uploads/
+
+# Fonts with license (ถ้ามี)
+baansuan_fonts/
+*.zip
+
+
+static/temp_uploads/
+
+templates/bp/
+
+add_collect.py
+add_user.py
+
+
+
+migrations

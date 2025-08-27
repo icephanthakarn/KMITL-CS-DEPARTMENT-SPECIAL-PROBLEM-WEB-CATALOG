@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>My App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .sort-dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sort-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background-color: #fff;
+      border: 1px solid #e35205;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 150px;
+      overflow: hidden;
+    }
+
+    .sort-dropdown-menu div {
+      padding: 10px 15px;
+      cursor: pointer;
+      color: #e35205;
+      font-weight: bold;
+    }
+
+    .sort-dropdown-menu div:hover {
+      background-color: #fff4ee;
+    }
+
+    .rotate {
+      transform: rotate(180deg);
+      transition: transform 0.2s ease;
+    }
+    .error-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fff4ee;
+      color: #e35205;
+      padding: 20px 30px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+.error-popup button {
+  margin-top: 16px;
+  padding: 8px 20px;
+  background-color: #e35205;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+
+  .backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);  /* ✅ ชั้นมืด */
+    backdrop-filter: blur(1px);           /* ✅ เบลอพื้นหลัง */
+    z-index: 9998;                         /* ใต้ popup */
+  }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">หน้าหลัก</a>
+
+      {% if user_logged_in %}
+      <div class="profile-wrapper">
+        <div class="profile-btn">
+          <div class="avatar-circle" style="background-color: {{ avatar_color }}">
+            {{ first_letter }}
+          </div>
+          <span class="student-id">{{ student_id }}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a>
+          <a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="login-btn {% if request.endpoint == 'login' %}hidden-login-btn{% endif %}">เข้าสู่ระบบ</a>
+      {% endif %}
+    </div>
+  </nav>
+  <div class="login-container">
+    <div class="login-box">
+        <h2>LOG IN</h2>
+        <form method="POST" action="{{ url_for('login') }}">
+          <label for="email">E-mail</label>
+            <input type="email" name="email" id="email" placeholder="Enter your Email..." required>
+          
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" placeholder="Enter your Password..." required>
+          
+            <button type="submit">LOG IN</button>
+          </form>
+          {% if error %}
+            <div class="backdrop" id="backdrop"></div>  <!-- ✅ ชั้นเบลอ -->
+            <div class="error-popup" id="errorPopup">
+              <p>{{ error }}</p>
+              <button onclick="closeErrorPopup()">ตกลง</button>
+            </div>
+            <script>
+              function closeErrorPopup() {
+                document.getElementById('errorPopup').style.display = 'none';
+                document.getElementById('backdrop').style.display = 'none'; // ✅ ซ่อน backdrop ด้วย
+              }
+            </script>
+          {% endif %}
+      </div>
+  </div>
+  <script>
+    function closeErrorPopup() {
+      const popup = document.getElementById('errorPopup');
+      const backdrop = document.getElementById('backdrop');
+      if (popup) popup.style.display = 'none';
+      if (backdrop) backdrop.remove(); // ✅ ลบ backdrop ออกจาก DOM
+    }
+  </script>
+</body>
+</html>

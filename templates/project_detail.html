@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>My App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .sort-dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .sort-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background-color: #fff;
+      border: 1px solid #ea5c0d;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      min-width: 150px;
+      overflow: hidden;
+    }
+
+    .sort-dropdown-menu div {
+      padding: 10px 15px;
+      cursor: pointer;
+      color: #ea5c0d;
+      font-weight: bold;
+    }
+
+    .sort-dropdown-menu div:hover {
+      background-color: #fff4ee;
+    }
+
+    .rotate {
+      transform: rotate(180deg);
+      transition: transform 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">หน้าหลัก</a>
+  
+      {% if user_logged_in %}
+      <div class="profile-wrapper">
+        <div class="profile-btn">
+          <div class="avatar-circle" style="background-color:  avatar_color ">
+
+            
+            {{ first_letter }}
+          </div>
+          <span class="student-id">{{ student_id }}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+  
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a>
+  
+          {% if user_is_admin %}
+            <a href="{{ url_for('admin_page') }}"><i class="fa fa-folder-open"></i> Project List</a>
+            <a href="{{ url_for('admin_student_page') }}"><i class="fa fa-users"></i> Student List</a>
+              <!--<a href="{{ url_for('admin_correction_page') }}">Correction Log</a> -->
+
+              <a href="{{ url_for('admin_correction_summary_page') }}">
+                <i class="fa fa-chart-pie"></i> Word List
+              </a>
+          {% endif %}
+          <a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="login-btn">เข้าสู่ระบบ</a>
+      {% endif %}
+    </div>
+  </nav>
+
+
+  <div class="project-detail-page">
+
+      <div class="left-panel">
+        <!-- Thumbnail -->
+        <div class="thumbnail">
+          {% if project.pdf_file and project.pdf_file.thumbnail_path %}
+            <img src="{{ url_for('static', filename=project.pdf_file.thumbnail_path) }}" alt="PDF Thumbnail">
+          {% else %}
+            <div class="pdf-preview">Preview</div>
+          {% endif %}
+        </div>
+
+        <!-- ปุ่มดาวน์โหลด -->
+        <a href="{{ url_for('download_file', project_id=project.id) }}" class="download-pdf" download>
+          <i class="fa-solid fa-file-pdf pdf-icon"></i>
+          <div class="filename">
+            {% if project.pdf_file and project.pdf_file.file_name %}
+              {{ project.pdf_file.file_name }}
+            {% else %}
+              ไม่พบชื่อไฟล์
+            {% endif %}
+          </div>
+        </a>
+      </div>
+
+      <div class="right-panel">
+        <div class="info-group">
+          <label>Title</label>
+          <p>{{ project.title_th }}</p>
+
+          <label>Alternative Title</label>
+          <p>{{ project.title_en }}</p>
+
+          <label>Author</label>
+          <p>{{ project.author }}</p>
+
+          <label>Abstract</label>
+          <p>{{ project.abstract_th }}</p>
+
+          <label>Abstract (EN)</label>
+          <p>{{ project.abstract_en }}</p>
+
+          <label>Faculty</label>
+          <p>{{ project.faculty }}</p>
+
+          <label>Department</label>
+          <p>{{ project.department }}</p>
+
+          <label>Academic Year</label>
+          <p>{{ project.academic_year }}</p>
+
+          <label>Advisor</label>
+          <p>{{ project.advisor }}</p>
+
+          <label>Keywords</label>
+          <p>
+            {% for kw in project.keywords_list %}
+              {{ kw.keyword_text }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+        </div>
+      </div>
+  </div>
+  
+</body>

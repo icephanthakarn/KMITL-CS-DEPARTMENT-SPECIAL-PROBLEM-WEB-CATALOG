@@ -1,0 +1,491 @@
+<!-- admin.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<style>
+  h1{
+    font-size: 22px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    font-size: 16px;
+    border-radius: 12px;
+    border: 1px solid #000;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 4px 16px;
+    text-align: left;
+    font-size: 15px;
+    border: 1px solid #ddd;
+    position: relative;
+  }
+
+  th {
+    background-color: #fef2ea;
+  }
+
+  th .filter-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  th .column-title {
+    font-weight: 600;
+    color: #ea5c0d;
+  }
+  .filter-button {
+    background: none;
+    cursor: pointer;
+    color: #ea5c0d;
+    font-size: 12px;
+    padding: 4px 0px 4px 20px;
+
+  }
+
+  .filter-button i {
+    pointer-events: none;
+  }
+
+  .filter-menu {
+    position: fixed;
+    top: 100%;
+    right: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 9999; /* ✅ ให้ลอยขึ้นเหนือทุกอย่าง */
+    min-width: 70px;
+    max-height: 320px;     /* ✅ เพิ่มความสูงสูงสุด */
+    overflow-y: auto;      /* ✅ ให้ scroll ได้เมื่อเกิน */
+    overflow-x: hidden;
+  }
+
+  .filter-menu button, .filter-menu select {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+    color: #ea5c0d;
+  }
+  .filter-menu button:hover, .filter-menu select:hover {
+    background-color: #f3f3f3;
+  }
+
+  a {
+    color: #ea5c0d;
+    font-weight: bold;
+    text-decoration: none;
+    margin-right: 10px;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  button {
+
+    background-color: #E35205;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .edit-btn {
+    background-color: #E35205;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  .delete-btn {
+    background-color: white;
+    color: #E35205;
+    border-color: #E35205;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.3);
+      backdrop-filter: blur(1px);
+      z-index: 999;
+      display: none;
+    }
+
+    .error-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      color: #e35205;
+      padding: 30px 40px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: none;
+    }
+
+    .confirm-btn {
+      padding: 8px 20px;
+      background-color: rgba(255, 255, 255, 0.844);
+      color: #e35205;
+      border: 1px solid #e35205;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .cancel-btn {
+      padding: 8px 20px;
+      background-color: #e35305cb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+
+</style>
+
+<body>
+  <!-- ตัวอย่างเมนู Navbar (อาจดัดแปลงจาก index.html) -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">หน้าหลัก</a>
+  
+      {% if user_logged_in %}
+      <div class="profile-wrapper">
+        <div class="profile-btn">
+          <div class="avatar-circle" style="background-color: {{ avatar_color }}">
+            {{ first_letter }}
+          </div>
+          <span class="student-id">{{ student_id }}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+  
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a>
+  
+          {% if user_is_admin %}
+            <a href="{{ url_for('admin_page') }}"><i class="fa fa-folder-open"></i> Project List</a>
+            <a href="{{ url_for('admin_student_page') }}"><i class="fa fa-users"></i> Student List</a>
+              <!--<a href="{{ url_for('admin_correction_page') }}">Correction Log</a> -->
+
+              <a href="{{ url_for('admin_correction_summary_page') }}">
+                <i class="fa fa-chart-pie"></i> Word List
+              </a>
+
+          {% endif %}
+          <a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="login-btn">เข้าสู่ระบบ</a>
+      {% endif %}
+    </div>
+  </nav>
+  <form method="get" action="{{ url_for('admin_page') }}">
+    <div class="container">
+      <div class="search-container">
+        <input type="text" name="q" placeholder="ค้นหาชื่อเรื่อง,ชื่อผู้จัดทำ,คำสำคัญ ได้ที่นี่" value="{{ request.args.get('q', '') }}">
+        <button type="submit" class="search-btn">ค้นหา</button>
+      </div>
+  
+      <!-- กล่องตัวกรอง -->
+      <div class="filter-group">
+        <div class="filter-item">
+          <label>ปีการศึกษา</label>
+          <div class="select-wrapper">
+            <select name="year" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              {% for y in ['2563', '2564', '2565', '2566'] %}
+                <option value="{{ y }}" {% if request.args.get('year') == y %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="filter-item">
+          <label>คณะ</label>
+          <div class="select-wrapper">
+            <select name="faculty" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              <option value="วิทยาศาสตร์" {% if request.args.get('faculty') == 'วิทยาศาสตร์' %}selected{% endif %}>วิทยาศาสตร์</option>
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="filter-item">
+          <label>ภาควิชา</label>
+          <div class="select-wrapper">
+            <select name="department" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              {% for dept in ['ชีววิทยา', 'เคมี', 'ฟิสิกส์', 'คณิตศาสตร์', 'วิทยาการคอมพิวเตอร์', 'สถิติ', 'Digital Technology and Integrated Innovation (International Program)'] %}
+                <option value="{{ dept }}" {% if request.args.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
+              {% endfor %}
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="reset-button-container">
+          <a href="{{ url_for('admin_page') }}" class="reset-btn" style="text-decoration:none;">คืนค่า</a>
+        </div>
+      </div>
+    </div>
+  </form>
+
+
+  <div class="container">
+    <h1>รายการโปรเจกต์ทั้งหมด</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <div class="filter-wrapper">
+              <span class="column-title">ID</span>
+              <button class="filter-button" onclick="toggleMenu(event, 'menu-id')">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <div id="menu-id" class="filter-menu">
+                <div class="title"> </div>
+                <button class="filter-option" onclick="sortTable(0, 'desc')">NEWEST</button>
+                <button class="filter-option" onclick="sortTable(0, 'asc')">OLDEST</button>
+              </div>
+            </div>
+          </th>
+          <th>
+            <div class="filter-wrapper">
+              <span class="column-title">Title</span>
+              <button class="filter-button" onclick="toggleMenu(event, 'menu-title')">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <div id="menu-title" class="filter-menu">
+                <div class="title"></div>
+                <button class="filter-option" onclick="sortTable(1, 'asc')">A → Z</button>
+                <button class="filter-option" onclick="sortTable(1, 'desc')">Z → A</button>
+              </div>
+            </div>
+          </th>
+          <th>
+            <div class="filter-wrapper">
+              <span class="column-title">Author</span>
+              <button class="filter-button" onclick="toggleMenu(event, 'menu-author')">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <div id="menu-author" class="filter-menu">
+                <div class="title"></div>
+                <button class="filter-option" onclick="sortTable(2, 'asc')">A → Z</button>
+                <button class="filter-option" onclick="sortTable(2, 'desc')">Z → A</button>
+              </div>
+            </div>
+          </th>
+          <th>
+            <div class="filter-wrapper">
+              <span class="column-title">Year</span>
+              <button class="filter-button" onclick="toggleMenu(event, 'menu-year')">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <div id="menu-year" class="filter-menu">
+                <div class="title"></div>
+                <button onclick="sortTable(3, 'desc')">ปีล่าสุด</button>
+                <button onclick="sortTable(3, 'asc')">ปีเก่าสุด</button>
+                <div class="title" style="margin-top: 6px; padding-left: 12px;color:#ea5c0d; font-weight: bold;">ปีที่สนใจ</div>
+                <div style="max-height: 150px; overflow-y: auto;">
+                  {% for year in year_list %}
+                    <label style="display:block; padding: 4px 12px;color:#ea5c0d;font-weight:normal;">
+                      <input type="checkbox" value="{{ year }}" class="year-filter">
+                      {{ year }}
+                    </label>
+                  {% endfor %}
+                </div>
+                <div style="text-align: right; padding: 6px 12px;">
+                  <button onclick="applyYearFilter()" style="padding: 4px 8px; font-size: 13px;text-align: right;">
+                    ตกลง
+                  </button>
+                </div>
+              </div>                
+              </div>
+            </div>
+          </th>
+          <th><span class="column-title">Manage</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in projects %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.title_th }}</td>
+          <td>{{ p.author }}</td>
+          <td class="year-col">{{ p.academic_year }}</td>
+          <td>
+            <div class="action-buttons">
+              <a href="{{ url_for('edit_project', project_id=p.id) }}" class="edit-btn">Edit</a>
+              <form method="POST" style="display:inline;">
+                <button type="button" class="delete-btn" onclick="confirmDelete('{{ p.id }}')">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="overlay" id="deleteOverlay"></div>
+
+<!--  Popup ลบ -->
+  <div class="error-popup" id="deletePopup">
+    <p>คุณแน่ใจหรือไม่ว่าต้องการลบงานออกจากระบบ?</p>
+    <form id="deleteForm" method="POST" action="">
+      <input type="hidden" name="project_id" id="hidden-project-id">
+      <button type="submit" class="confirm-btn">OK</button>
+      <button type="button" class="cancel-btn" onclick="closeDeletePopup()">Cancel</button>
+    </form>
+  </div>
+
+  <script>
+    function toggleMenu(event, id) {
+      event.stopPropagation();
+      // ปิดทุกเมนูก่อนเปิดเมนูใหม่
+      document.querySelectorAll('.filter-menu').forEach(m => m.style.display = 'none');
+  
+      const button = event.currentTarget;
+      const rect = button.getBoundingClientRect();
+      const menu = document.getElementById(id);
+  
+      if (menu) {
+        menu.style.display = 'block';
+        menu.style.position = 'fixed';
+        menu.style.top = `${rect.bottom}px`;
+        menu.style.left = `${rect.left}px`;
+      }
+    }
+  
+    // ✅ ป้องกันการปิดเมื่อคลิกในเมนู
+    document.querySelectorAll('.filter-menu').forEach(menu => {
+      menu.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+    });
+  
+    // ✅ เรียงแถวในตาราง
+    function sortTable(colIndex, order) {
+      const table = document.querySelector("table");
+      const tbody = table.querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+  
+      rows.sort((a, b) => {
+        const cellA = a.children[colIndex].innerText.trim();
+        const cellB = b.children[colIndex].innerText.trim();
+        const isNumeric = !isNaN(parseFloat(cellA)) && !isNaN(parseFloat(cellB));
+        if (isNumeric) {
+          return order === 'asc' ? cellA - cellB : cellB - cellA;
+        } else {
+          return order === 'asc' ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        }
+      });
+  
+      rows.forEach(row => tbody.appendChild(row));
+  
+      // ✅ ถ้าเมนูคือ year → ปิดเมนูอัตโนมัติ
+      if (document.getElementById("menu-year").style.display === "block") {
+        document.getElementById("menu-year").style.display = "none";
+      }
+    }
+  
+    // ✅ ใช้เมื่อเลือก checkbox แล้วกด "ตกลง"
+    function applyYearFilter() {
+      const checkboxes = document.querySelectorAll('#menu-year input[type=checkbox]');
+      const selectedYears = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+  
+      const rows = document.querySelectorAll("tbody tr");
+      rows.forEach(row => {
+        const year = row.querySelector(".year-col").innerText.trim();
+        row.style.display = selectedYears.includes(year) ? "" : "none";
+      });
+  
+      // ✅ ปิดเฉพาะเมนู year เมื่อกดตกลง
+      const yearMenu = document.getElementById('menu-year');
+      if (yearMenu) yearMenu.style.display = 'none';
+    }
+  
+    // ✅ กดข้างนอกเมนู → พับทุกเมนูรวม menu-year
+    document.addEventListener('mousedown', function (event) {
+      const isFilterButton = event.target.closest('.filter-button');
+      const isMenu = event.target.closest('.filter-menu');
+      if (!isFilterButton && !isMenu) {
+        document.querySelectorAll('.filter-menu').forEach(menu => {
+          menu.style.display = 'none';
+        });
+      }
+    });
+  
+    // ✅ ปิดเมนูทันทีเมื่อกด filter-option ยกเว้น "ตกลง"
+    document.querySelectorAll('.filter-menu').forEach(menu => {
+      menu.addEventListener('click', function (event) {
+        const optionClicked = event.target.closest('.filter-option');
+        if (optionClicked && event.target.innerText !== "ตกลง") {
+          menu.style.display = 'none';
+        }
+      });
+    });
+
+    function confirmDelete(projectId) {
+      event.preventDefault();
+      document.getElementById('deleteOverlay').style.display = 'block';
+      document.getElementById('deletePopup').style.display = 'block';
+      document.getElementById('deleteForm').action = `/admin/delete-project/${projectId}`;;
+    }
+
+  function closeDeletePopup() {
+      document.getElementById('deleteOverlay').style.display = 'none';
+      document.getElementById('deletePopup').style.display = 'none';
+    }
+  </script>
+  
+</body>
+</html>

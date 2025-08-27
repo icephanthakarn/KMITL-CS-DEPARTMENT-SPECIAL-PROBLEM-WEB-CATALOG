@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>My App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">หน้าหลัก</a>
+  
+      {% if user_logged_in %}
+      <div class="profile-wrapper">
+        <div class="profile-btn">
+          <div class="avatar-circle" style="background-color: {{ avatar_color }}">
+            {{ first_letter }}
+          </div>
+          <span class="student-id">{{ student_id }}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+  
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a>
+  
+          {% if user_is_admin %}
+            <a href="{{ url_for('admin_page') }}"><i class="fa fa-folder-open"></i> Project List</a>
+            <a href="{{ url_for('admin_student_page') }}"><i class="fa fa-users"></i> Student List</a>
+              <!--<a href="{{ url_for('admin_correction_page') }}">Correction Log</a> -->
+
+              <a href="{{ url_for('admin_correction_summary_page') }}">
+                <i class="fa fa-chart-pie"></i> Word List
+              </a>
+          {% endif %}
+          <a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="login-btn">เข้าสู่ระบบ</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- ค้นหา -->
+  <form method="get" action="{{ url_for('index') }}">
+    <div class="container">
+      <div class="search-container">
+        <input type="text" name="q" placeholder="ค้นหาชื่อเรื่อง,ชื่อผู้จัดทำ,คำสำคัญ ได้ที่นี่" value="{{ request.args.get('q', '') }}">
+        <button type="submit" class="search-btn">ค้นหา</button>
+      </div>
+  
+      <!-- กล่องตัวกรอง -->
+      <div class="filter-group">
+        <div class="filter-item">
+          <label>ปีการศึกษา</label>
+          <div class="select-wrapper">
+            <select name="year" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              {% for y in ['2563', '2564', '2565', '2566'] %}
+                <option value="{{ y }}" {% if request.args.get('year') == y %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="filter-item">
+          <label>คณะ</label>
+          <div class="select-wrapper">
+            <select name="faculty" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              <option value="วิทยาศาสตร์" {% if request.args.get('faculty') == 'วิทยาศาสตร์' %}selected{% endif %}>วิทยาศาสตร์</option>
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="filter-item">
+          <label>ภาควิชา</label>
+          <div class="select-wrapper">
+            <select name="department" onchange="this.form.submit()">
+              <option value="">ทั้งหมด</option>
+              {% for dept in ['ชีววิทยา', 'เคมี', 'ฟิสิกส์', 'คณิตศาสตร์', 'วิทยาการคอมพิวเตอร์', 'สถิติ', 'Digital Technology and Integrated Innovation (International Program)'] %}
+                <option value="{{ dept }}" {% if request.args.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
+              {% endfor %}
+            </select>
+            <i class="fa-solid fa-chevron-down icon-dropdown"></i>
+          </div>
+        </div>
+  
+        <div class="reset-button-container">
+          <a href="{{ url_for('index') }}" class="reset-btn" style="text-decoration:none;">คืนค่า</a>
+        </div>
+      </div>
+    </div>
+  </form>
+  
+  
+    <!-- แสดงผลการค้นหา + จัดเรียง -->
+  <div class="container">
+    <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+      <span class="result-count">ผลการค้นหา {{ total_projects }} รายการ</span>
+
+      <div class="sort-dropdown-wrapper">
+        <button class="sort-btn" onclick="toggleSortMenu()">
+          จัดเรียงตาม <i class="fa-solid fa-chevron-down arrow-icon" id="sort-icon"></i>
+        </button>
+        <div class="sort-dropdown-menu" id="sortDropdown">
+          <div class="sort-option" onclick='window.location="{{ url_for("index", sort_by="title_asc") }}"'>A–Z / ก-ฮ</div>
+          <div class="sort-option" onclick='window.location="{{ url_for("index", sort_by="title_desc") }}"'>Z–A / ฮ-ก</div>
+          <div class="sort-option" onclick='window.location="{{ url_for("index", sort_by="year_desc") }}"'>ปีการศึกษาล่าสุด</div>
+          <div class="sort-option" onclick='window.location="{{ url_for("index", sort_by="year_asc") }}"'>ปีการศึกษาเก่าสุด</div>
+        </div>
+        
+             
+      </div>
+    </div>
+
+    <!-- ตัวอย่างโปรเจกต์ -->
+
+    {% for project in projects %}
+      <div class="container">      
+        <div class="project-card">
+          <div class="thumbnail">
+            {% if project.pdf_file and project.pdf_file.thumbnail_path %}
+            <img src="{{ url_for('static', filename=project.pdf_file.thumbnail_path) }}" alt="PDF Thumbnail">
+          {% else %}
+            <img src="{{ url_for('static', filename='img/default-thumbnail.png') }}" alt="No thumbnail" style="width: 150px;" />
+          {% endif %}
+          
+          </div>
+        <div class="project-info">
+          <h3>{{ project.title_th }}</h3>
+          <p>ปีการศึกษา : <span class="highlight">{{ project.academic_year }}</span></p>
+            <p>คณะ : <span class="highlight">{{ project.faculty }}</span></p>
+            <p>สาขา : <span class="highlight">{{ project.department }}</span></p>
+            <p>ชื่อผู้จัดทำ : {{ project.author }}</p>
+
+            <div class="action-buttons">
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="detail-btn">แสดงรายละเอียด</a>
+                <a href="{{ url_for('download_file', project_id=project.id) }}" 
+                class="download-btn">
+               ดาวน์โหลดไฟล์ <i class="fa-solid fa-file-arrow-down icon"></i>
+             </a>
+             
+            </div>
+        </div>
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="pagination">
+      {% if current_page > 1 %}
+        <a href="?page={{ current_page - 1 }}">&laquo;</a>
+      {% endif %}
+    
+      {% for p in page_range %}
+        {% if p == '...' %}
+          <span class="dots">...</span>
+        {% elif p == current_page %}
+          <span class="current">{{ p }}</span>
+        {% else %}
+          <a href="?page={{ p }}">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+    
+      {% if current_page < total_pages %}
+        <a href="?page={{ current_page + 1 }}">&raquo;</a>
+      {% endif %}
+    </div>
+
+
+  <!-- Script -->
+  <script>
+    function toggleSortMenu() {
+      const dropdown = document.getElementById("sortDropdown");
+      const icon = document.getElementById("sort-icon");
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+      icon.classList.toggle("rotate");
+    }
+
+    document.addEventListener('click', function(event) {
+      const dropdown = document.getElementById("sortDropdown");
+      const button = document.querySelector('.sort-btn');
+      const icon = document.getElementById("sort-icon");
+
+      if (!button.contains(event.target)) {
+        dropdown.style.display = "none";
+        icon.classList.remove("rotate");
+      }
+    });
+
+  </script>
+</body>
+</html>
+
+

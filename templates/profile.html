@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>My App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+     .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.3);
+      backdrop-filter: blur(1px);
+      z-index: 999;
+      display: none;
+    }
+
+    .error-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      color: #e35205;
+      padding: 30px 40px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: none;
+    }
+
+    .confirm-btn {
+      padding: 8px 20px;
+      background-color: rgba(255, 255, 255, 0.844);
+      color: #e35205;
+      border: 1px solid #e35205;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .cancel-btn {
+      padding: 8px 20px;
+      background-color: #e35305cb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .replace-btn {
+    background-color: white;
+    color: #E35205;
+    border: 1px solid #E35205;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 8px;
+    margin-top: 34px;
+  }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    .loading-content {
+      text-align: center;
+      color: white;
+    }
+    .icon-move-wrapper {
+      position: relative;
+      width: 240px;
+      height: 80px;
+      margin: auto;
+    }
+    .folder-left, .folder-right {
+      font-size: 48px;
+      color: #ffb347;
+      position: absolute;
+      bottom: 0;
+    }
+    .folder-left {
+      left: 0;
+    }
+    .folder-right {
+      right: 0;
+    }
+    .flying-file {
+      font-size: 28px;
+      color: white;
+      position: absolute;
+      bottom: 12px;
+      left: 0;
+      animation: flyCurve 2s ease-in-out infinite;
+    }
+    @keyframes flyCurve {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      25% { transform: translate(70px, -20px) rotate(-10deg); }
+      50% { transform: translate(110px, -30px) rotate(0deg); }
+      75% { transform: translate(150px, -20px) rotate(10deg); }
+      100% { transform: translate(190px, 0) rotate(0deg); }
+
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('index') }}" class="brand">หน้าหลัก</a>
+  
+      {% if user_logged_in %}
+      <div class="profile-wrapper">
+        <div class="profile-btn">
+          <div class="avatar-circle" style="background-color: {{ avatar_color }}">
+            {{ first_letter }}
+          </div>
+          <span class="student-id">{{ student_id }}</span>
+          <i class="fa-solid fa-chevron-down arrow"></i>
+        </div>
+  
+        <div class="dropdown-menu">
+          <a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Profile</a>
+  
+          {% if user_is_admin %}
+            <a href="{{ url_for('admin_page') }}"><i class="fa fa-folder-open"></i> Project List</a>
+            <a href="{{ url_for('admin_student_page') }}"><i class="fa fa-users"></i> Student List</a>
+              <!--<a href="{{ url_for('admin_correction_page') }}">Correction Log</a> -->
+
+              <a href="{{ url_for('admin_correction_summary_page') }}">
+                <i class="fa fa-chart-pie"></i> Word List
+              </a>
+          {% endif %}
+          <a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="login-btn">เข้าสู่ระบบ</a>
+      {% endif %}
+    </div>
+  </nav>
+  
+
+  <!-- ✅ ครอบ container -->
+  <div class="container">
+    <div class="profile-page">
+      <div class="profile-card">
+        <div class="avatar-circle big" style="background-color: {{ avatar_color }};">
+          {{ first_letter }}
+        </div>
+        <div class="info">
+          <p>ชื่อ - นามสกุล : <span class="highlight">{{ user_name }}</span></p>
+          {% if user_is_admin %}
+            <p>รหัสนักศึกษา : <span class="highlight">Admin</span></p>
+          {% else %}
+            <p>รหัสนักศึกษา : <span class="highlight">{{ student_id }}</span></p>
+          {% endif %}
+          <p>คณะ : <span class="highlight">{{ faculty }}</span></p>
+          <p>ภาควิชา : <span class="highlight">{{ student_major }}</span></p>
+        </div>
+      </div>
+
+      <div class="upload-section">
+        <h3>YOUR WORK</h3>
+
+        {% if user_role == 'admin' %}
+                <!-- ✅ ปุ่มเพิ่มไฟล์ สำหรับ admin -->
+                <div class="upload-box">
+                  <form method="POST" action="{{ url_for('upload_project') }}" enctype="multipart/form-data" id="upload-form">
+                    <input type="file" name="pdf_file" class="real-file" hidden onchange="document.getElementById('upload-form').submit();">
+                    <span class="upload-link" onclick="this.previousElementSibling.click();">
+                      CLICK HERE TO UPLOAD ANOTHER FILE
+                    </span>
+                  </form>
+                </div>
+                
+
+        {% for project in admin_projects %}
+        <div class="project-card">
+          <div class="thumbnail">
+            {% if project.pdf_file and project.pdf_file.thumbnail_path %}
+              <img src="{{ url_for('static', filename=project.pdf_file.thumbnail_path) }}" alt="PDF Thumbnail">
+            {% else %}
+              <img src="{{ url_for('static', filename='img/default-thumbnail.png') }}" alt="No Thumbnail" />
+            {% endif %}
+          </div>
+          <div class="project-info">
+            <h3 style="font-weight: bold; color:#444444d8;">{{ project.title_th }}</h3>
+            <!--<p> {{ project.title_th }}</p>-->
+            <p>ปีการศึกษา : <span class="highlight">{{ project.academic_year }}</span></p>
+            <p>คณะ : <span class="highlight">{{ project.faculty }}</span></p>
+            <p>ภาควิชา : <span class="highlight">{{ project.department }}</span></p>
+            <div class="action-buttons">
+              <a href="{{ url_for('edit_project', project_id=project.id) }}" class="edit-btn">Edit</a>
+              <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}">
+                <button type="button" class="delete-btn" onclick="confirmDelete('{{ project.id }}')">Delete</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+               <!--<p> นักศึกษา</p>-->
+      {% else %}
+        {% if user_project %}
+          {% for p in user_project %}
+          <div class="project-card">
+            <div class="thumbnail">
+              {% if p.pdf_file and p.pdf_file.thumbnail_path %}
+                <img src="{{ url_for('static', filename=p.pdf_file.thumbnail_path) }}" alt="PDF Thumbnail">
+              {% else %}
+                <img src="{{ url_for('static', filename='img/default-thumbnail.png') }}" alt="No Thumbnail" />
+              {% endif %}
+            </div>
+
+              <div class="project-info">
+                <h3 style="font-weight: bold; color:#444444d8;">{{ p.title_th }}</h3>
+                <p>ปีการศึกษา : <span class="highlight">{{ p.academic_year }}</span></p>
+                <p>คณะ : <span class="highlight">{{ p.faculty }}</span></p>
+                <p>ภาควิชา : <span class="highlight">{{ p.department }}</span></p>
+                <div class="action-buttons">
+                  <a href="{{ url_for('edit_project', project_id=p.id) }}" class="edit-btn">Edit</a>
+
+                  <form method="POST"
+                        action="{{ url_for('replace_file', project_id=p.id) }}"
+                        enctype="multipart/form-data"
+                        style="display:inline;"
+                        id="replace-form-{{ p.id }}">
+                    <input type="file"
+                          name="pdf_file"
+                          id="replace-file-input-{{ p.id }}"
+                          style="display:none"
+                          class="real-file"
+                          class="real-file" />
+                    <button type="button"
+                            class="replace-btn"
+                            onclick="document.getElementById('replace-file-input-{{ p.id }}').click();">
+                      Change File
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+
+    
+
+        {% else %}
+        <!-- นักศึกษาเพิ่มได้แค่ไฟล์เดียว -->
+        <div class="upload-box">
+          <form method="POST" action="{{ url_for('upload_project') }}" enctype="multipart/form-data" id="upload-form">
+            <input type="file" name="pdf_file" class="real-file" hidden onchange="document.getElementById('upload-form').submit();">
+            <span class="upload-link" onclick="this.previousElementSibling.click();">
+              CLICK HERE TO UPLOAD YOUR PROJECT
+            </span>
+          </form>
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+    </div>
+  </div>
+  <!-- ✅ Overlay -->
+<div class="overlay" id="deleteOverlay"></div>
+
+<!-- ✅ Popup ยืนยันการลบ -->
+<div class="error-popup" id="deletePopup">
+  <p>คุณแน่ใจหรือไม่ว่าต้องการลบงานออกจากระบบ?</p>
+  <form id="deleteForm" method="POST" action="{{ url_for('delete_project') }}">
+    <input type="hidden" name="project_id" id="hidden-project-id">
+    <button type="submit" class="confirm-btn">OK</button>
+    <button type="button" class="cancel-btn" onclick="closeDeletePopup()">Cancel</button>
+  </form>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="icon-move-wrapper">
+      <i class="fa-solid fa-folder folder-left"></i>
+      <i class="fa-solid fa-file flying-file"></i>
+      <i class="fa-solid fa-folder folder-right"></i>
+    </div>
+    <p style="margin-top: 16px; color: #fff; font-weight: bold; font-size: 1.2rem;">In Process....</p>
+  </div>
+</div>
+
+<script>
+
+
+  function closeDeletePopup() {
+    document.getElementById('deleteOverlay').style.display = 'none';
+    document.getElementById('deletePopup').style.display = 'none';
+  }
+
+  function confirmDelete(projectId) {
+      event.preventDefault();
+      document.getElementById('deleteOverlay').style.display = 'block';
+      document.getElementById('deletePopup').style.display = 'block';
+      document.getElementById('hidden-project-id').value = projectId;
+    }
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+    const overlay = document.getElementById("loadingOverlay");
+    const fileInputs = document.querySelectorAll(".real-file");
+
+    fileInputs.forEach((input) => {
+      input.addEventListener("change", function () {
+        if (input.files.length > 0) {
+          overlay.style.display = "flex";
+          input.closest("form").submit();
+        }
+      });
+    });
+  });
+
+</script>
+</body>
+</html>
+
