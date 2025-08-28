@@ -60,6 +60,3 @@
 3. รัน Flask server  
    ```bash
    python app.py
-
-
-
